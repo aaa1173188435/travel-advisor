@@ -136,8 +136,9 @@ travel-advisor/
 │     ├─ cities.json      # 30 个城市的气候与看点
 │     └─ holidays_cn.json # 2026 / 2027 官方放假安排
 ├─ web/                   # index.html / styles.css / app.js
-├─ tests/                 # 38 个用例
+├─ tests/                 # 40 个用例
 ├─ scripts/dev.ps1
+├─ scripts/deploy_hf.py   # 一键发布到 Hugging Face Spaces
 ├─ Dockerfile             # 通用容器镜像
 └─ render.yaml            # Render 一键部署蓝图
 ```
@@ -334,6 +335,32 @@ $env:TRAVEL_ADVISOR_LLM_MODEL = "gpt-4o-mini"
 4. Apply，等构建完成，得到形如 `https://travel-advisor-xxxx.onrender.com` 的地址。
 
 注意：Render 免费实例 15 分钟无访问会休眠，再次访问约 30 秒冷启动；这是免费方案的正常现象。
+
+### 备选：Hugging Face Spaces（免费、不用绑卡）
+
+如果不想在 Render 绑支付方式，可以发布到 Hugging Face Spaces 的免费 Docker Space：
+
+1. 登录 [huggingface.co](https://huggingface.co)，在 **Settings → Access Tokens** 创建一个 **Write** 权限的 token；
+2. 在项目根目录新建 `.hf_token` 文件，把 token 粘进去（一行，已被 `.gitignore` 忽略）；
+3. 运行：
+
+```powershell
+python scripts/deploy_hf.py
+```
+
+脚本会自动创建 Space、生成精简目录并推送代码，最后输出：
+
+```
+https://<你的用户名>-travel-advisor.hf.space
+```
+
+4. 打开 Space → **Settings → Variables and secrets**，添加三个 Secret：
+   - `TRAVEL_ADVISOR_WEATHER_KEY`
+   - `TRAVEL_ADVISOR_WEATHER_BASE_URL`
+   - `DEEPSEEK_API_KEY`（可选）
+5. 保存后 Space 自动重启，地址即可对外提供完整功能。
+
+说明：免费 Space 闲置约 48 小时后休眠，访问时自动唤醒；Space 仓库是公开的，但代码里不含任何密钥，密钥只存在 Secrets 里。也可以把 Pages 前端的 `TRAVEL_API_BASE` 指向这个 Space 地址。
 
 ### 第二步：GitHub Pages 发布前端（可选）
 
