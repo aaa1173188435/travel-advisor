@@ -5,6 +5,7 @@ from datetime import date
 import pytest
 
 from travel_advisor import engine
+from travel_advisor.cities import resolve
 from travel_advisor.engine import UnknownModeError
 
 
@@ -64,6 +65,15 @@ def test_unknown_city_falls_back_with_warning():
     assert payload["city"]["matched"] is False
     assert payload["warnings"]
     assert payload["result"]["score"] > 0
+
+
+def test_new_city_baishan_is_available():
+    profile = resolve("白山市")
+    assert profile.id == "baishan"
+    assert profile.matched is True
+    payload = engine.advise(city="白山市", day=date(2027, 1, 10), mode_id="travel", use_llm=False)
+    assert payload["city"]["name"] == "白山"
+    assert payload["result"]["sections"]
 
 
 def test_scores_are_bounded():

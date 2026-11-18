@@ -63,12 +63,13 @@ def _level(rain_prob: float, t_max: float) -> str:
 
 
 def _condition_text(rain_prob: float, t_max: float) -> str:
+    snowy = t_max <= 0
     if rain_prob >= 0.45:
-        condition = "降水概率较高"
+        condition = "降雪概率较高" if snowy else "降水概率较高"
     elif rain_prob >= 0.30:
-        condition = "可能有阵雨"
+        condition = "可能有雪" if snowy else "可能有阵雨"
     elif rain_prob >= 0.18:
-        condition = "局部可能有雨"
+        condition = "局部可能有雪" if snowy else "局部可能有雨"
     else:
         condition = "以晴到多云为主"
     if t_max >= 35:

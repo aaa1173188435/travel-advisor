@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import os
 import shutil
 import subprocess
@@ -27,6 +28,10 @@ WORK = ROOT / "dist-ms"
 SOURCE_FILES = ("travel_advisor", "web")
 SOURCE_SINGLE = ("requirements.txt",)
 DEPLOY_DIR = ROOT / "deploy" / "modelscope"
+
+
+def _auth_header(token: str) -> str:
+    return "http.extraHeader=Authorization: Basic " + base64.b64encode(f"oauth2:{token}".encode()).decode()
 
 
 def read_token() -> str:
@@ -43,16 +48,41 @@ def run(args: list[str], cwd: Path) -> None:
     subprocess.run(args, cwd=cwd, check=True)
 
 
+def check_sdk(user: str, space: str) -> None:
+    """确认创空间是 Docker 类型，否则 Gradio 环境跑不了 FastAPI。"""
+    import httpx
+
+    try:
+        response = httpx.get(
+            f"https://www.modelscope.cn/api/v1/studio/{user}/{space}",
+            headers={"User-Agent": "git/2.44.0.windows.1"},
+            timeout=15,
+        )
+        data = response.json().get("Data") or {}
+    except Exception:
+        return
+    sdk = str(data.get("SdkType") or "").lower()
+    if sdk and sdk != "docker":
+        print(
+            f"当前创空间的 SDK 是 {sdk}，不是 docker。请在创建创空间时选择「Docker / 编程式创空间」，"
+            "或删除后重建。",
+            file=sys.stderr,
+        )
+        raise SystemExit(4)
+
+
 def prepare_clone(user: str, space: str, token: str) -> None:
     if WORK.exists():
         shutil.rmtree(WORK)
-    https = f"https://oauth2:{token}@www.modelscope.cn/{user}/{space}.git"
+    url = f"https://www.modelscope.cn/studios/{user}/{space}.git"
     print(f"克隆创空间仓库：{user}/{space}")
-    try:
-        subprocess.run(["git", "clone", https, str(WORK)], check=True)
-    except subprocess.CalledProcessError:
+    result = subprocess.run(
+        ["git", "-c", _auth_header(token), "clone", url, str(WORK)],
+        check=False,
+    )
+    if result.returncode != 0:
         print(
-            "克隆失败：请确认创空间已创建、用户名/名称正确、令牌具备写权限。",
+            "克隆失败：请确认创空间已创建（Docker SDK）、用户名/名称正确、令牌是「写」权限。",
             file=sys.stderr,
         )
         raise SystemExit(3)
@@ -75,14 +105,14 @@ def copy_project() -> None:
     (WORK / ".gitignore").write_text(".env\n__pycache__/\n*.pyc\n", encoding="utf-8")
 
 
-def commit_and_push(user: str, space: str) -> None:
+def commit_and_push(user: str, space: str, token: str) -> None:
     run(["git", "config", "user.name", "travel-advisor"], WORK)
     run(["git", "config", "user.email", "travel-advisor@users.noreply.modelscope.cn"], WORK)
     run(["git", "add", "-A"], WORK)
     # 没有变更时 commit 会失败，这里允许它失败
     subprocess.run(["git", "commit", "-m", "deploy: travel advisor studio"], cwd=WORK)
-    run(["git", "push", "origin", "HEAD:master"], WORK)
-    run(["git", "remote", "set-url", "origin", f"https://www.modelscope.cn/{user}/{space}.git"], WORK)
+    run(["git", "-c", _auth_header(token), "push", "origin", "HEAD:master"], WORK)
+    run(["git", "remote", "set-url", "origin", f"https://www.modelscope.cn/studios/{user}/{space}.git"], WORK)
 
 
 def main() -> int:
@@ -107,7 +137,8 @@ def main() -> int:
 
     prepare_clone(args.user, args.space, token)
     copy_project()
-    commit_and_push(args.user, args.space)
+    check_sdk(args.user, args.space)
+    commit_and_push(args.user, args.space, token)
 
     url = f"https://www.modelscope.cn/studios/{args.user}/{args.space}"
     print("\n代码已推送。接下来：")

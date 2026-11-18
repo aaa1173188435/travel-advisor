@@ -1,4 +1,4 @@
-/* 出行建议官 · 前端逻辑（原生 JS，无构建步骤） */
+﻿/* 出行建议官 · 前端逻辑（原生 JS，无构建步骤） */
 
 /* 本地同源部署时为空；GitHub Pages 由 config.js 注入 Render 后端地址 */
 const API_BASE = (window.TRAVEL_ADVISOR_API_BASE || "").replace(/\/+$/, "");
@@ -266,7 +266,7 @@ function bindCityInput() {
 
   input.addEventListener("input", () => {
     state.selectedCity = null;
-    $("#cityHint").textContent = "支持 30 个主要城市，可输入中文、拼音或简称";
+    $("#cityHint").textContent = "支持 30 多个主要城市，可输入中文、拼音或简称";
     clearTimeout(timer);
     const value = input.value.trim();
     if (!value) {
