@@ -141,7 +141,7 @@ travel-advisor/
 │     ├─ cities.json      # 31 个城市的气候与看点
 │     └─ holidays_cn.json # 2026 / 2027 官方放假安排
 ├─ web/                   # index.html / styles.css / app.js
-├─ tests/                 # 52 个用例
+├─ tests/                 # 55 个用例
 ├─ scripts/dev.ps1
 ├─ scripts/deploy_hf.py   # 一键发布到 Hugging Face Spaces
 ├─ scripts/deploy_modelscope.py  # 一键发布到魔搭 Docker 创空间
@@ -426,7 +426,7 @@ docker run -d --name travel-advisor -p 8010:8010 --env-file .env travel-advisor
 
 ```powershell
 python -m pytest
-# 52 passed
+# 55 passed
 ```
 
 覆盖节假日边界（春节第几天、调休上班、单日假期、估算年份）、模式注册、评分单调性、雨天提示、未知城市兜底、未知模式 422、天气接口解析与回退、接口与首页。

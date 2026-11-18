@@ -143,6 +143,30 @@ def test_llm_polish_rejected_when_festival_ignored(monkeypatch):
     assert "遗漏" in (payload["polish"]["error"] or "")
 
 
+def test_booking_does_not_call_festival_a_low_season():
+    payload = engine.advise(city="北京", day=date(2026, 12, 25), mode_id="travel", use_llm=False)
+    sections = {section["id"]: section for section in payload["result"]["sections"]}
+    text = " ".join(item["text"] for item in sections["booking"]["items"])
+    assert "圣诞节当天" in text
+    assert "节前的工作日" not in text
+
+
+def test_booking_low_season_only_on_normal_workday():
+    payload = engine.advise(city="北京", day=date(2026, 12, 23), mode_id="travel", use_llm=False)
+    sections = {section["id"]: section for section in payload["result"]["sections"]}
+    text = " ".join(item["text"] for item in sections["booking"]["items"])
+    assert "距元旦" in text
+    assert "相对低谷" in text
+
+
+def test_booking_during_holiday_points_after_holiday():
+    payload = engine.advise(city="北京", day=date(2027, 2, 6), mode_id="travel", use_llm=False)
+    sections = {section["id"]: section for section in payload["result"]["sections"]}
+    text = " ".join(item["text"] for item in sections["booking"]["items"])
+    assert "假期到" in text
+    assert "节前的工作日" not in text
+
+
 def test_scores_are_bounded():
     for city in ("哈尔滨", "三亚", "拉萨"):
         for mode_id in ("commute", "travel"):

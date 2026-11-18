@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 from ..context import AdviceContext
 from ..holiday_tips import tips_for
 from ..registry import register
@@ -314,11 +316,33 @@ class TravelMode(Mode):
 
         if days >= 3:
             items.append(Item("交通", "跨城或长途建议提前看返程票，节假日票源更紧张。", "info"))
-        if ctx.next_holiday_name and ctx.next_holiday_days is not None and 0 < ctx.next_holiday_days <= 10:
+
+        next_days = ctx.next_holiday_days
+        if holiday.is_holiday:
+            if holiday.block_end:
+                after = holiday.block_end + timedelta(days=1)
+                items.append(
+                    Item(
+                        "错峰窗口",
+                        f"假期到 {holiday.block_end.month} 月 {holiday.block_end.day} 日结束，"
+                        f"{after.month} 月 {after.day} 日起人流和价格通常回落。",
+                        "info",
+                    )
+                )
+        elif ctx.festival:
+            after = ctx.day + timedelta(days=1)
             items.append(
                 Item(
                     "错峰窗口",
-                    f"距{ctx.next_holiday_name}还有 {ctx.next_holiday_days} 天，节前这一周通常是价格和人流的低谷。",
+                    f"{ctx.festival.name}当天商圈和餐厅偏忙，{after.month} 月 {after.day} 日起人流回落，可把主要行程放到之后。",
+                    "info",
+                )
+            )
+        elif ctx.next_holiday_name and next_days is not None and 0 < next_days <= 10 and holiday.is_working_day:
+            items.append(
+                Item(
+                    "错峰窗口",
+                    f"距{ctx.next_holiday_name}还有 {next_days} 天，节前的工作日通常是价格和人流的相对低谷。",
                     "good",
                 )
             )
