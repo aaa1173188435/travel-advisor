@@ -119,6 +119,30 @@ def test_llm_polish_is_rejected_when_it_ignores_holiday(monkeypatch):
     assert "遗漏" in (payload["polish"]["error"] or "")
 
 
+def test_festival_affects_travel_advice():
+    payload = engine.advise(city="北京", day=date(2026, 12, 25), mode_id="travel", use_llm=False)
+    texts = " ".join(item["text"] for section in payload["result"]["sections"] for item in section["items"])
+    assert "圣诞节" in texts
+    assert "圣诞节" in payload["result"]["tags"]
+    assert payload["facts"]["festival"]["name"] == "圣诞节"
+
+
+def test_spring_festival_has_specific_travel_tips():
+    payload = engine.advise(city="北京", day=date(2027, 2, 6), mode_id="travel", use_llm=False)
+    sections = {section["id"]: section for section in payload["result"]["sections"]}
+    assert "holiday" in sections
+    text = " ".join(item["text"] for item in sections["holiday"]["items"])
+    assert "返乡" in text and "庙会" in text
+
+
+def test_llm_polish_rejected_when_festival_ignored(monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test")
+    monkeypatch.setattr(engine, "polish", lambda *args, **kwargs: ("今天天气不错，适合出门。", None))
+    payload = engine.advise(city="北京", day=date(2026, 12, 25), mode_id="travel", use_llm=True)
+    assert payload["polish"]["used"] is False
+    assert "遗漏" in (payload["polish"]["error"] or "")
+
+
 def test_scores_are_bounded():
     for city in ("哈尔滨", "三亚", "拉萨"):
         for mode_id in ("commute", "travel"):

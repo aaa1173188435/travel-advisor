@@ -310,6 +310,8 @@ class CommuteMode(Mode):
                     "warn",
                 )
             )
+        if ctx.festival and ctx.festival.commute_note:
+            items.append(Item("节庆", f"{ctx.festival.name}：{ctx.festival.commute_note}", "warn"))
         if ctx.holiday.estimated:
             items.append(
                 Item("数据说明", "该年份放假安排尚未正式公布，假期判断为按固定日期估算。", "info")

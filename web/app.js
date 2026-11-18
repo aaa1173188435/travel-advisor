@@ -1,4 +1,4 @@
-﻿/* 出行建议官 · 前端逻辑（原生 JS，无构建步骤） */
+/* 出行建议官 · 前端逻辑（原生 JS，无构建步骤） */
 
 /* 本地同源部署时为空；GitHub Pages 由 config.js 注入 Render 后端地址 */
 const API_BASE = (window.TRAVEL_ADVISOR_API_BASE || "").replace(/\/+$/, "");
@@ -442,6 +442,9 @@ function renderResult(data) {
     ["天气来源", weather.estimated ? "常年估算" : weather.provider || "预报"],
     ["日期性质", calendar.type_label || "-"],
   ];
+  if (data.facts && data.facts.festival) {
+    chips.push(["节庆", data.facts.festival.name]);
+  }
   if (data.facts && data.facts.solar_term && data.facts.solar_term.upcoming) {
     const term = data.facts.solar_term;
     const offset = Number(term.days_until) || 0;

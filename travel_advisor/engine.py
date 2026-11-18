@@ -46,6 +46,8 @@ def _required_points(ctx: Any, result: Any) -> list[str]:
     points: list[str] = []
     if ctx.holiday.is_holiday:
         points.append("节假日人流")
+    if ctx.festival:
+        points.append("节庆人流")
     if "早高峰" in result.tags or "晚高峰" in result.tags:
         points.append("通勤高峰")
     if ctx.weather.rain_prob >= 0.45:

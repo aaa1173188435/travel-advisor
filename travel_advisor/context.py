@@ -6,8 +6,9 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
 
-from . import cities, weather
+from . import cities, festivals, weather
 from .cities import CityProfile
+from .festivals import Festival
 from .holidays import HolidayStatus, get_calendar, resolve
 from .solar import SolarTerm, nearest_term, season_of, term_on
 from .weather import WeatherProfile
@@ -19,6 +20,7 @@ class AdviceContext:
     requested_city: str
     city: CityProfile
     holiday: HolidayStatus
+    festival: Festival | None
     weather: WeatherProfile
     season: str
     solar_term: SolarTerm | None
@@ -46,6 +48,15 @@ class AdviceContext:
                 "restriction": self.city.restriction,
             },
             "calendar": self.holiday.to_dict(),
+            "festival": (
+                {
+                    "name": self.festival.name,
+                    "kind": self.festival.kind,
+                    "crowd_note": self.festival.crowd_note,
+                }
+                if self.festival
+                else None
+            ),
             "weather": self.weather.to_dict(),
             "season": self.season,
             "solar_term": {
@@ -77,6 +88,7 @@ def build_context(day: date, city_query: str, options: dict[str, Any] | None = N
         requested_city=city_query,
         city=profile,
         holiday=status,
+        festival=festivals.for_date(day),
         weather=profile_weather,
         season=season_of(day),
         solar_term=today_term,

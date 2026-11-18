@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from ..context import AdviceContext
+from ..holiday_tips import tips_for
 from ..registry import register
 from ..weather import display_temp
 from .base import Item, Mode, ModeResult, Section, clamp, score_label
@@ -109,6 +110,9 @@ class TravelMode(Mode):
         if peak_season:
             score -= 5
             tags.append("旺季")
+        if ctx.festival:
+            score -= 4
+            tags.append(ctx.festival.name)
         if weather.rain_prob >= 0.35:
             score -= 12
             tags.append("多雨")
@@ -131,6 +135,9 @@ class TravelMode(Mode):
             self._booking_section(ctx, days),
             self._packing_section(ctx, days),
         ]
+        tips = tips_for(ctx.holiday.holiday_name) if ctx.holiday.is_holiday else None
+        if tips:
+            sections.insert(2, self._holiday_section(tips))
 
         headline = self._headline(ctx, days, peak_season)
 
@@ -158,6 +165,8 @@ class TravelMode(Mode):
             crowd = "工作日出行，景区排队和交通压力都小很多"
         if peak_season:
             crowd += "，且处于当地旅游旺季"
+        if ctx.festival and not holiday.is_holiday:
+            crowd += f"，当天是{ctx.festival.name}，商圈和餐厅会更热闹"
 
         if weather.rain_prob >= 0.35:
             plan = "雨水偏多，行程以室内场馆和商圈为主，户外项目留好备选"
@@ -217,9 +226,24 @@ class TravelMode(Mode):
 
         if peak_season:
             items.append(Item("旺季", f"{ctx.city.name}当前处于旅游旺季，住宿和热门项目建议提前预订。", "warn"))
+        if ctx.festival:
+            items.append(Item("节庆", f"{ctx.festival.name}：{ctx.festival.crowd_note}", "warn"))
         if ctx.city.highlight_for_month(ctx.day.month):
             items.append(Item("当季看点", "；".join(ctx.city.highlight_for_month(ctx.day.month)[:2]), "good"))
         return Section("crowd", "人流与档期", "👥", items)
+
+    def _holiday_section(self, tips: dict[str, str]) -> Section:
+        return Section(
+            "holiday",
+            "假期特点",
+            "🎊",
+            [
+                Item("人流", tips["crowd"], "warn"),
+                Item("行程", tips["travel"], "info"),
+                Item("预订", tips["booking"], "warn"),
+                Item("当季玩法", tips["special"], "good"),
+            ],
+        )
 
     def _rhythm_section(self, ctx: AdviceContext, days: int, interests: list[str]) -> Section:
         weather = ctx.weather
