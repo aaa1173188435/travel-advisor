@@ -104,6 +104,21 @@ def test_fitness_duration_and_intensity_applied():
     assert "高强度" in texts
 
 
+def test_missing_points_detects_holiday_omission():
+    from travel_advisor.llm import missing_points
+
+    assert missing_points("今天天气不错，适合出门。", ["节假日人流"]) == ["节假日人流"]
+    assert missing_points("春节假期人流大，建议错峰。", ["节假日人流"]) == []
+
+
+def test_llm_polish_is_rejected_when_it_ignores_holiday(monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test")
+    monkeypatch.setattr(engine, "polish", lambda *args, **kwargs: ("今天天气不错，适合出门。", None))
+    payload = engine.advise(city="北京", day=date(2027, 2, 6), mode_id="travel", use_llm=True)
+    assert payload["polish"]["used"] is False
+    assert "遗漏" in (payload["polish"]["error"] or "")
+
+
 def test_scores_are_bounded():
     for city in ("哈尔滨", "三亚", "拉萨"):
         for mode_id in ("commute", "travel"):

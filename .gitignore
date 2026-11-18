@@ -15,3 +15,4 @@ edge-*.txt
 e-tmp*.txt
 shot-*.png
 *.log
+.idea/

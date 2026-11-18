@@ -11,7 +11,7 @@ from typing import Any
 
 from . import modes as _modes  # noqa: F401 - 导入即完成模式注册
 from .context import build_context
-from .llm import config_from_env, polish
+from .llm import config_from_env, missing_points, polish
 from .registry import describe_all, get as get_mode
 
 ENGINE_VERSION = "1.2.0"
@@ -39,6 +39,24 @@ def clear_cache() -> None:
 def _llm_enabled() -> bool:
     """公网部署时可以整体关闭大模型，避免额度被刷或误用。"""
     return os.getenv("TRAVEL_ADVISOR_LLM_ENABLED", "1").strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _required_points(ctx: Any, result: Any) -> list[str]:
+    """规则要求润色必须点明的事实；缺一项就判定润色不合格。"""
+    points: list[str] = []
+    if ctx.holiday.is_holiday:
+        points.append("节假日人流")
+    if "早高峰" in result.tags or "晚高峰" in result.tags:
+        points.append("通勤高峰")
+    if ctx.weather.rain_prob >= 0.45:
+        points.append("降水")
+    if ctx.weather.t_max >= 35:
+        points.append("高温")
+    if ctx.weather.t_max <= 0:
+        points.append("严寒")
+    if not ctx.city.matched:
+        points.append("城市未收录")
+    return points
 
 
 def _disclaimer(weather: Any) -> str:
@@ -89,6 +107,7 @@ def advise(
     result = mode.advise(ctx)
     facts = ctx.facts()
 
+    required = _required_points(ctx, result)
     polish_text: str | None = None
     polish_error: str | None = None
     polish_model: str | None = None
@@ -96,7 +115,12 @@ def advise(
         config = config_from_env()
         if config is not None:
             polish_model = config.model
-            polish_text, polish_error = polish(facts, result.to_dict(), config)
+            polish_text, polish_error = polish(facts, result.to_dict(), config, required=required)
+            if polish_text:
+                missing = missing_points(polish_text, required)
+                if missing:
+                    polish_error = "润色遗漏关键信息：" + "、".join(missing)
+                    polish_text = None
 
     warnings: list[str] = []
     if not ctx.city.matched:

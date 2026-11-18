@@ -20,8 +20,31 @@ SYSTEM_PROMPT = (
     "你的任务是用 2—3 句自然、口语化的中文把结论润色一遍。"
     "必须遵守：只使用给定事实，不得编造天气、限行、票价、人流等数据；"
     "不要逐条复述列表；不要使用 Markdown 标题；总长度不超过 120 个汉字；"
-    "如果事实里存在风险（降雨、高温、严寒、限行、节假日人流），必须点明。"
+    "如果事实里存在风险（降水、高温、严寒、限行、节假日人流），必须点明；"
+    "提供 must_mention 时，每一类事实都必须在润色文本中出现。"
 )
+
+# must_mention 标签 → 判定关键词（命中任意一个即视为提到）
+_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "节假日人流": ("假期", "节假", "人流", "人多", "拥挤", "游客", "客流"),
+    "通勤高峰": ("高峰", "拥堵", "挤"),
+    "降水": ("雨", "雪", "降水", "伞"),
+    "高温": ("高温", "炎热", "热"),
+    "严寒": ("严寒", "寒冷", "低温", "冷", "保暖"),
+    "城市未收录": ("未收录", "估算", "兜底", "按温带"),
+}
+
+
+def missing_points(text: str, required: list[str] | None) -> list[str]:
+    """检查润色文本是否覆盖了规则要求必须提到的事实。"""
+    if not required:
+        return []
+    missing = []
+    for point in required:
+        keywords = _KEYWORDS.get(point, (point,))
+        if not any(keyword in text for keyword in keywords):
+            missing.append(point)
+    return missing
 
 
 @dataclass
@@ -59,7 +82,7 @@ def status() -> dict[str, Any]:
     return config.public()
 
 
-def _build_messages(facts: dict[str, Any], draft: dict[str, Any]) -> list[dict[str, str]]:
+def _build_messages(facts: dict[str, Any], draft: dict[str, Any], required: list[str] | None = None) -> list[dict[str, str]]:
     payload = {
         "facts": facts,
         "draft": {
@@ -76,16 +99,21 @@ def _build_messages(facts: dict[str, Any], draft: dict[str, Any]) -> list[dict[s
             ],
         },
     }
+    instruction = "请根据以下事实润色出行建议：\n"
+    if required:
+        instruction += "必须提到：" + "、".join(required) + "。\n"
     return [
         {"role": "system", "content": SYSTEM_PROMPT},
-        {
-            "role": "user",
-            "content": "请根据以下事实润色出行建议：\n" + json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
-        },
+        {"role": "user", "content": instruction + json.dumps(payload, ensure_ascii=False, separators=(",", ":"))},
     ]
 
 
-def polish(facts: dict[str, Any], draft: dict[str, Any], config: LlmConfig | None = None) -> tuple[str | None, str | None]:
+def polish(
+    facts: dict[str, Any],
+    draft: dict[str, Any],
+    config: LlmConfig | None = None,
+    required: list[str] | None = None,
+) -> tuple[str | None, str | None]:
     """返回 (润色文本, 错误信息)。失败时返回 (None, 错误原因)，调用方自行降级。"""
     config = config or config_from_env()
     if not config:
@@ -98,7 +126,7 @@ def polish(facts: dict[str, Any], draft: dict[str, Any], config: LlmConfig | Non
 
     body = {
         "model": config.model,
-        "messages": _build_messages(facts, draft),
+        "messages": _build_messages(facts, draft, required),
         "temperature": 0.6,
         "max_tokens": 300,
         "stream": False,

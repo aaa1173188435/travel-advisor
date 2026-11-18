@@ -139,7 +139,7 @@ travel-advisor/
 │     ├─ cities.json      # 31 个城市的气候与看点
 │     └─ holidays_cn.json # 2026 / 2027 官方放假安排
 ├─ web/                   # index.html / styles.css / app.js
-├─ tests/                 # 44 个用例
+├─ tests/                 # 46 个用例
 ├─ scripts/dev.ps1
 ├─ scripts/deploy_hf.py   # 一键发布到 Hugging Face Spaces
 ├─ scripts/deploy_modelscope.py  # 一键发布到魔搭 Docker 创空间
@@ -261,6 +261,8 @@ TRAVEL_ADVISOR_WEATHER_BASE_URL=https://abc123.re.qweatherapi.com
 ## 配置大模型 API Key
 
 规则结果先算好，再把 `facts` 与草稿交给模型，只允许它改写结论、不允许编造数据。提示词里明确约束：最多 2—3 句、不超过 120 字、必须点明风险。
+
+润色不是「写完就算」：规则会给出 `must_mention` 清单（节假日人流、通勤高峰、降水、高温、严寒、未收录城市），模型遗漏任何一项，这次润色会被拒绝并回退到规则文案，`polish.error` 记录原因。这样节假日人多这类关键信息不会因为模型发挥而消失。
 
 默认接 DeepSeek（OpenAI 兼容协议）。Key 在 [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys) 创建，形如 `sk-...`。
 
@@ -420,7 +422,7 @@ docker run -d --name travel-advisor -p 8010:8010 --env-file .env travel-advisor
 
 ```powershell
 python -m pytest
-# 44 passed
+# 46 passed
 ```
 
 覆盖节假日边界（春节第几天、调休上班、单日假期、估算年份）、模式注册、评分单调性、雨天提示、未知城市兜底、未知模式 422、天气接口解析与回退、接口与首页。

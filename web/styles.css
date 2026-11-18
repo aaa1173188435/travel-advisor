@@ -200,6 +200,7 @@ input[type="number"],
 select {
   width: 100%;
   min-width: 0;
+  max-width: 100%;
   font-family: inherit;
   font-size: 15px;
   color: var(--ink);
@@ -298,8 +299,22 @@ select:focus {
   box-shadow: 0 8px 16px -10px rgba(15, 118, 110, 0.9);
 }
 
+/* iOS/Android 原生日期与时间控件有内置最小宽度，容易撑破容器 */
+input[type="date"],
+input[type="time"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.field,
+.option-row,
+.combo {
+  min-width: 0;
+}
+
 .mode-options {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   padding: 14px;
   border: 1px dashed rgba(15, 118, 110, 0.22);
