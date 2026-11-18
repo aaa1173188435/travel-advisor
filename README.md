@@ -5,6 +5,8 @@
 
 ![首页](docs/screenshot-home.png)
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/aaa1173188435/travel-advisor)
+
 ## 特点
 
 - **三种输入，结构固定**：`date` / `city` / `mode`，输出是稳定的 JSON（摘要 + 评分 + 分区建议 + 事实明细），前端和第三方都能直接消费。
@@ -321,7 +323,7 @@ $env:TRAVEL_ADVISOR_LLM_MODEL = "gpt-4o-mini"
 
 ### 第一步：Render 部署后端（必需）
 
-仓库里已经带了 `Dockerfile` 和 `render.yaml`，点几下就能上线：
+仓库里已经带了 `Dockerfile` 和 `render.yaml`，点几下就能上线（也可以直接点 README 顶部的 Deploy 按钮）：
 
 1. 用 GitHub 账号登录 [render.com](https://render.com)；
 2. **New → Blueprint**，选择 `travel-advisor` 仓库，Render 会自动读取 `render.yaml`；
