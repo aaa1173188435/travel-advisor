@@ -1,5 +1,8 @@
 /* 出行建议官 · 前端逻辑（原生 JS，无构建步骤） */
 
+/* 本地同源部署时为空；GitHub Pages 由 config.js 注入 Render 后端地址 */
+const API_BASE = (window.TRAVEL_ADVISOR_API_BASE || "").replace(/\/+$/, "");
+
 const state = {
   modes: [],
   modeId: null,
@@ -41,7 +44,7 @@ function nextSaturdayISO() {
 }
 
 async function api(path, options) {
-  const response = await fetch(path, options);
+  const response = await fetch(API_BASE + path, options);
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     const detail = data.detail;
@@ -58,6 +61,14 @@ async function init() {
   bindForm();
   bindCityInput();
   bindExamples();
+
+  if (!API_BASE && /\.github\.io$/i.test(window.location.hostname)) {
+    showError(
+      "当前是 GitHub Pages 静态前端，后端 API 尚未配置：请先在 Render 部署服务，再把地址写入仓库变量 TRAVEL_API_BASE，然后重新运行 Pages 工作流。"
+    );
+    return;
+  }
+
   await Promise.all([loadModes(), loadHealth()]);
   await applyDeepLink();
 }

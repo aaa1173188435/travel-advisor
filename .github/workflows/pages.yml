@@ -1,0 +1,48 @@
+name: pages
+
+# 只发布静态前端（web/），后端仍由 Render 提供。
+# 后端地址通过仓库变量 TRAVEL_API_BASE 注入，例如：
+#   https://travel-advisor-xxxx.onrender.com
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build static site
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/static
+          cp web/index.html dist/index.html
+          cp web/styles.css web/app.js dist/static/
+          api_base="${{ vars.TRAVEL_API_BASE }}"
+          printf 'window.TRAVEL_ADVISOR_API_BASE = "%s";\n' "${api_base}" > dist/static/config.js
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4

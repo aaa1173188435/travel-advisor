@@ -60,6 +60,13 @@ def test_root_serves_page():
     assert "出行建议官" in response.text
 
 
+def test_static_assets_are_served():
+    for path in ("/static/styles.css", "/static/app.js", "/static/config.js"):
+        response = client.get(path)
+        assert response.status_code == 200, path
+        assert response.content, path
+
+
 def test_rate_limit_blocks_excess_requests(monkeypatch):
     monkeypatch.setenv("TRAVEL_ADVISOR_RATE_LIMIT", "2")
     payload = {"city": "上海", "date": "2026-12-24", "mode": "commute", "use_llm": False}

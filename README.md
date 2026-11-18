@@ -317,24 +317,35 @@ $env:TRAVEL_ADVISOR_LLM_MODEL = "gpt-4o-mini"
 
 ## 部署（公网 / 手机访问）
 
-新闻简报那类项目可以放 GitHub Pages，因为它产出的是静态文件；**这个项目是 FastAPI 动态服务，Pages 跑不了 Python 后端**，需要一个能跑容器的托管平台。
+前端是纯静态文件，可以放 GitHub Pages；**后端是 FastAPI，Pages 跑不了 Python**，需要 Render 或任意 Docker 主机。两者组合，就能得到一个 `github.io` 链接 + 完整功能。
 
-### 方式一：Render（免费，推荐）
+### 第一步：Render 部署后端（必需）
 
 仓库里已经带了 `Dockerfile` 和 `render.yaml`，点几下就能上线：
 
 1. 用 GitHub 账号登录 [render.com](https://render.com)；
 2. **New → Blueprint**，选择 `travel-advisor` 仓库，Render 会自动读取 `render.yaml`；
-3. 在环境变量里填三个值（不会写进仓库）：
+3. 在环境变量里填：
    - `TRAVEL_ADVISOR_WEATHER_KEY`：和风 Key
    - `TRAVEL_ADVISOR_WEATHER_BASE_URL`：和风 API Host
-   - `DEEPSEEK_API_KEY`：大模型 Key（可留空，留空就是纯规则）
-4. Apply，等构建完成，得到形如 `https://travel-advisor-xxxx.onrender.com` 的地址；
-5. 手机浏览器打开这个地址即可使用，也可以「添加到主屏幕」，图标和标题已经适配。
+   - `DEEPSEEK_API_KEY`：大模型 Key（可留空；担心额度就留空或设 `TRAVEL_ADVISOR_LLM_ENABLED=0`）
+4. Apply，等构建完成，得到形如 `https://travel-advisor-xxxx.onrender.com` 的地址。
 
 注意：Render 免费实例 15 分钟无访问会休眠，再次访问约 30 秒冷启动；这是免费方案的正常现象。
 
-### 方式二：任意 Docker 主机 / VPS
+### 第二步：GitHub Pages 发布前端（可选）
+
+仓库公开后 Pages 可用，前端由 `.github/workflows/pages.yml` 发布：
+
+1. 仓库 **Settings → Pages → Source** 选择 **GitHub Actions**；
+2. 仓库 **Settings → Secrets and variables → Actions → Variables** 新建：
+   - `TRAVEL_API_BASE` = `https://travel-advisor-xxxx.onrender.com`
+3. 推送一次 `web/` 的改动，或手动运行 **pages** 工作流；
+4. 得到 `https://<用户名>.github.io/travel-advisor/`，手机打开即可。
+
+前端只包含 HTML/CSS/JS，不含任何 Key；所有密钥都在 Render 的服务端环境变量里。
+
+### 方式三：任意 Docker 主机 / VPS
 
 ```bash
 docker build -t travel-advisor .
