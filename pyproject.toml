@@ -1,0 +1,23 @@
+[project]
+name = "travel-advisor"
+version = "1.0.0"
+description = "输入日期、城市与出行模式，返回可解释的出行建议（规则引擎 + 可选大模型润色）"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "pydantic>=2.5",
+    "httpx>=0.25",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"

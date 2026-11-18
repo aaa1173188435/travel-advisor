@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.env
+.proxy/
+.browser-profile/
+edge-*.txt
+e-tmp*.txt
+shot-*.png
+*.log
