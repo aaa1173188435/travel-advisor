@@ -16,5 +16,6 @@ def _reset_state(monkeypatch):
         "TRAVEL_ADVISOR_WEATHER_BASE_URL",
         "TRAVEL_ADVISOR_RATE_LIMIT",
         "TRAVEL_ADVISOR_CACHE_TTL",
+        "TRAVEL_ADVISOR_LLM_ENABLED",
     ):
         monkeypatch.delenv(name, raising=False)

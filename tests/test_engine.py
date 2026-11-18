@@ -86,6 +86,14 @@ def test_llm_disabled_does_not_call_model(monkeypatch):
     assert payload["polish"]["text"] is None
 
 
+def test_llm_kill_switch_disables_polish(monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test")
+    monkeypatch.setenv("TRAVEL_ADVISOR_LLM_ENABLED", "0")
+    payload = engine.advise(city="上海", day=date(2026, 11, 20), mode_id="commute", use_llm=True)
+    assert payload["polish"]["used"] is False
+    assert payload["result"]["sections"]
+
+
 def test_polish_failure_falls_back(monkeypatch):
     monkeypatch.setenv("TRAVEL_ADVISOR_LLM_API_KEY", "fake-key")
     monkeypatch.setenv("TRAVEL_ADVISOR_LLM_BASE_URL", "http://127.0.0.1:9/v1")

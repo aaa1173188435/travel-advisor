@@ -86,7 +86,7 @@ def test_estimate_bad_host_falls_back(monkeypatch):
 
 
 def test_normalize_base_url():
-    assert weather_api._normalize_base_url("kw3h2ucx82.re.qweatherapi.com") == "https://kw3h2ucx82.re.qweatherapi.com"
+    assert weather_api._normalize_base_url("demo123.re.qweatherapi.com") == "https://demo123.re.qweatherapi.com"
     assert weather_api._normalize_base_url("https://a.re.qweatherapi.com/") == "https://a.re.qweatherapi.com"
     assert weather_api._normalize_base_url("http://127.0.0.1:8000/v7/weather/7d") == "http://127.0.0.1:8000"
     assert weather_api._normalize_base_url("  \"https://a.re.qweatherapi.com\"  ") == "https://a.re.qweatherapi.com"

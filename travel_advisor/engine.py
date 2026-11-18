@@ -1,4 +1,4 @@
-﻿"""把请求、规则引擎与大模型润色串起来。"""
+"""把请求、规则引擎与大模型润色串起来。"""
 
 from __future__ import annotations
 
@@ -34,6 +34,11 @@ def _cache_ttl() -> float:
 def clear_cache() -> None:
     with _CACHE_LOCK:
         _CACHE.clear()
+
+
+def _llm_enabled() -> bool:
+    """公网部署时可以整体关闭大模型，避免额度被刷或误用。"""
+    return os.getenv("TRAVEL_ADVISOR_LLM_ENABLED", "1").strip().lower() not in {"0", "false", "no", "off"}
 
 
 def _disclaimer(weather: Any) -> str:
@@ -87,7 +92,7 @@ def advise(
     polish_text: str | None = None
     polish_error: str | None = None
     polish_model: str | None = None
-    if use_llm:
+    if use_llm and _llm_enabled():
         config = config_from_env()
         if config is not None:
             polish_model = config.model

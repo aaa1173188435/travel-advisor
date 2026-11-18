@@ -1,4 +1,4 @@
-﻿# 出行建议官 · Travel Advisor
+# 出行建议官 · Travel Advisor
 
 输入 **日期 + 城市 + 出行模式**，返回一份可解释、能直接照做的出行建议。
 规则引擎负责事实（气候、节假日、高峰、人流），大模型只负责把结论说得更自然——没配置 Key 也能完整使用。
@@ -233,6 +233,8 @@ TRAVEL_ADVISOR_WEATHER_BASE_URL=https://abc123.re.qweatherapi.com
 
 > 注意：公共域名 `devapi.qweather.com` / `api.qweather.com` 已不能用于新账号，会返回 `403 Invalid Host`，必须用控制台里的专属 API Host。地址只填域名也可以，代码会自动补 `https://`，并忽略误粘贴的 `/v7/...` 路径。
 
+**Key 的位置**：所有 Key 只在服务端（本地 `.env` 或托管平台的环境变量）读取，浏览器拿不到；`.env` 被 `.gitignore` 排除，从未进入 git 历史。若把服务部署到公网，可以只填天气 Key、不填 `DEEPSEEK_API_KEY`，或设置 `TRAVEL_ADVISOR_LLM_ENABLED=0`，这样大模型层完全不启用，规则与天气照常工作。
+
 | 变量 | 默认值 | 说明 |
 | --- | --- | --- |
 | `TRAVEL_ADVISOR_WEATHER_KEY` | 空 | 和风 Key；留空则只用常年值 |
@@ -303,6 +305,7 @@ $env:TRAVEL_ADVISOR_LLM_MODEL = "gpt-4o-mini"
 
 | 变量 | 默认值 | 说明 |
 | --- | --- | --- |
+| `TRAVEL_ADVISOR_LLM_ENABLED` | `1` | 设为 `0` 可整体关闭大模型调用（公网部署防刷） |
 | `TRAVEL_ADVISOR_LLM_API_KEY` | 空 | 留空则纯规则；也兼容 `DEEPSEEK_API_KEY` |
 | `TRAVEL_ADVISOR_LLM_BASE_URL` | `https://api.deepseek.com/v1` | 任意 OpenAI 兼容地址 |
 | `TRAVEL_ADVISOR_LLM_MODEL` | `deepseek-chat` | 模型名 |
