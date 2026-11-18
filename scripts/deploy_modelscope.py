@@ -1,0 +1,122 @@
+"""把出行建议官发布到魔搭（ModelScope）Docker 创空间。
+
+前置条件：
+  1. 已完成实名认证并绑定阿里云账号（魔搭 Docker 创空间的要求）；
+  2. 已在 https://www.modelscope.cn/studios/create 创建 Docker 创空间；
+  3. 已在 https://modelscope.cn/my/myaccesstoken 创建「写」权限令牌。
+
+用法：
+    python scripts/deploy_modelscope.py --user 你的魔搭用户名
+
+令牌读取顺序：环境变量 MODELSCOPE_API_TOKEN → 项目根目录 .ms_token 文件。
+推送完成后，还需要在创空间「设置 → 环境变量」里添加密钥，并点「上线」。
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+TOKEN_FILE = ROOT / ".ms_token"
+WORK = ROOT / "dist-ms"
+SOURCE_FILES = ("travel_advisor", "web")
+SOURCE_SINGLE = ("requirements.txt",)
+DEPLOY_DIR = ROOT / "deploy" / "modelscope"
+
+
+def read_token() -> str:
+    token = os.getenv("MODELSCOPE_API_TOKEN", "").strip()
+    if token:
+        return token
+    if TOKEN_FILE.is_file():
+        return TOKEN_FILE.read_text(encoding="utf-8-sig").strip()
+    return ""
+
+
+def run(args: list[str], cwd: Path) -> None:
+    print("$", " ".join(args[:2]), "...")
+    subprocess.run(args, cwd=cwd, check=True)
+
+
+def prepare_clone(user: str, space: str, token: str) -> None:
+    if WORK.exists():
+        shutil.rmtree(WORK)
+    https = f"https://oauth2:{token}@www.modelscope.cn/{user}/{space}.git"
+    print(f"克隆创空间仓库：{user}/{space}")
+    try:
+        subprocess.run(["git", "clone", https, str(WORK)], check=True)
+    except subprocess.CalledProcessError:
+        print(
+            "克隆失败：请确认创空间已创建、用户名/名称正确、令牌具备写权限。",
+            file=sys.stderr,
+        )
+        raise SystemExit(3)
+
+
+def copy_project() -> None:
+    for name in SOURCE_SINGLE:
+        shutil.copy(ROOT / name, WORK / name)
+    for name in SOURCE_FILES:
+        target = WORK / name
+        if target.exists():
+            shutil.rmtree(target)
+        shutil.copytree(
+            ROOT / name,
+            target,
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+        )
+    shutil.copy(DEPLOY_DIR / "Dockerfile", WORK / "Dockerfile")
+    shutil.copy(DEPLOY_DIR / "README.md", WORK / "README.md")
+    (WORK / ".gitignore").write_text(".env\n__pycache__/\n*.pyc\n", encoding="utf-8")
+
+
+def commit_and_push(user: str, space: str) -> None:
+    run(["git", "config", "user.name", "travel-advisor"], WORK)
+    run(["git", "config", "user.email", "travel-advisor@users.noreply.modelscope.cn"], WORK)
+    run(["git", "add", "-A"], WORK)
+    # 没有变更时 commit 会失败，这里允许它失败
+    subprocess.run(["git", "commit", "-m", "deploy: travel advisor studio"], cwd=WORK)
+    run(["git", "push", "origin", "HEAD:master"], WORK)
+    run(["git", "remote", "set-url", "origin", f"https://www.modelscope.cn/{user}/{space}.git"], WORK)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--user", required=True, help="魔搭用户名")
+    parser.add_argument("--space", default="travel-advisor", help="创空间名称")
+    parser.add_argument("--prepare-only", action="store_true", help="只生成 dist-ms/，不推送")
+    args = parser.parse_args()
+
+    if args.prepare_only:
+        if WORK.exists():
+            shutil.rmtree(WORK)
+        WORK.mkdir(parents=True)
+        copy_project()
+        print(f"已生成 {WORK}，可手动上传到创空间。")
+        return 0
+
+    token = read_token()
+    if not token:
+        print("缺少令牌：设置 MODELSCOPE_API_TOKEN，或写入 .ms_token 文件。", file=sys.stderr)
+        return 2
+
+    prepare_clone(args.user, args.space, token)
+    copy_project()
+    commit_and_push(args.user, args.space)
+
+    url = f"https://www.modelscope.cn/studios/{args.user}/{args.space}"
+    print("\n代码已推送。接下来：")
+    print(f"1. 打开 {url} → 设置 → 环境变量，添加（运行时）：")
+    print("   TRAVEL_ADVISOR_WEATHER_KEY / TRAVEL_ADVISOR_WEATHER_BASE_URL / DEEPSEEK_API_KEY")
+    print("2. 同一页面点「上线」，等待构建完成。")
+    print(f"3. 访问地址：{url}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

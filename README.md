@@ -139,6 +139,8 @@ travel-advisor/
 ├─ tests/                 # 40 个用例
 ├─ scripts/dev.ps1
 ├─ scripts/deploy_hf.py   # 一键发布到 Hugging Face Spaces
+├─ scripts/deploy_modelscope.py  # 一键发布到魔搭 Docker 创空间
+├─ deploy/modelscope/     # 魔搭专用 Dockerfile（7860 端口）与 README
 ├─ Dockerfile             # 通用容器镜像
 └─ render.yaml            # Render 一键部署蓝图
 ```
@@ -361,6 +363,21 @@ https://<你的用户名>-travel-advisor.hf.space
 5. 保存后 Space 自动重启，地址即可对外提供完整功能。
 
 说明：免费 Space 闲置约 48 小时后休眠，访问时自动唤醒；Space 仓库是公开的，但代码里不含任何密钥，密钥只存在 Secrets 里。也可以把 Pages 前端的 `TRAVEL_API_BASE` 指向这个 Space 地址。
+
+### 备选：魔搭 ModelScope 创空间（国内访问快）
+
+魔搭的 Docker 创空间同样免费，国内手机访问更稳。要求：**实名认证 + 绑定阿里云账号**，且端口固定为 `7860`（仓库里的 `deploy/modelscope/Dockerfile` 已适配）。
+
+1. 在 [创建创空间](https://www.modelscope.cn/studios/create) 选择 **Docker**，名称填 `travel-advisor`；
+2. 在 [访问令牌](https://modelscope.cn/my/myaccesstoken) 创建 **写** 权限令牌，写入项目根目录的 `.ms_token` 文件；
+3. 运行：
+
+```powershell
+python scripts/deploy_modelscope.py --user 你的魔搭用户名
+```
+
+4. 回到创空间 **设置 → 环境变量**，添加 `TRAVEL_ADVISOR_WEATHER_KEY`、`TRAVEL_ADVISOR_WEATHER_BASE_URL`、`DEEPSEEK_API_KEY`（运行时注入）；
+5. 点「上线」，等构建完成，地址为 `https://www.modelscope.cn/studios/<用户名>/travel-advisor`。
 
 ### 第二步：GitHub Pages 发布前端（可选）
 

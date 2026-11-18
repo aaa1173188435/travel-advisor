@@ -6,7 +6,9 @@ venv/
 .ruff_cache/
 .env
 .hf_token
+.ms_token
 dist-hf/
+dist-ms/
 .proxy/
 .browser-profile/
 edge-*.txt
