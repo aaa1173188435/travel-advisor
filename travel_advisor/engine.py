@@ -1,7 +1,11 @@
-"""把请求、规则引擎与大模型润色串起来。"""
+﻿"""把请求、规则引擎与大模型润色串起来。"""
 
 from __future__ import annotations
 
+import json
+import os
+import threading
+import time
 from datetime import date, datetime
 from typing import Any
 
@@ -10,9 +14,26 @@ from .context import build_context
 from .llm import config_from_env, polish
 from .registry import describe_all, get as get_mode
 
-ENGINE_VERSION = "1.1.0"
+ENGINE_VERSION = "1.2.0"
 
 BASE_DISCLAIMER = "限行、景区预约与交通运营信息请以当地主管部门当日发布为准。"
+
+# 短时缓存：同一组输入在 TTL 内直接复用，既省天气 API 配额也省大模型费用
+_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
+_CACHE_LOCK = threading.Lock()
+_CACHE_MAX = 800
+
+
+def _cache_ttl() -> float:
+    try:
+        return float(os.getenv("TRAVEL_ADVISOR_CACHE_TTL", "300"))
+    except ValueError:
+        return 300.0
+
+
+def clear_cache() -> None:
+    with _CACHE_LOCK:
+        _CACHE.clear()
 
 
 def _disclaimer(weather: Any) -> str:
@@ -46,6 +67,19 @@ def advise(
     if mode is None:
         raise UnknownModeError(mode_id)
 
+    ttl = _cache_ttl()
+    cache_key = ""
+    if ttl > 0:
+        cache_key = json.dumps(
+            {"city": city, "day": day.isoformat(), "mode": mode_id, "options": options or {}, "llm": use_llm},
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+        with _CACHE_LOCK:
+            hit = _CACHE.get(cache_key)
+        if hit and hit[0] > time.time():
+            return hit[1]
+
     ctx = build_context(day, city, options)
     result = mode.advise(ctx)
     facts = ctx.facts()
@@ -69,7 +103,7 @@ def advise(
         if "Invalid Host" in ctx.weather.error:
             warnings.append("请把和风控制台里的 API Host 填入 TRAVEL_ADVISOR_WEATHER_BASE_URL。")
 
-    return {
+    payload = {
         "request": {
             "city": city,
             "date": day.isoformat(),
@@ -94,3 +128,11 @@ def advise(
             "weather_source": ctx.weather.source,
         },
     }
+
+    if ttl > 0:
+        with _CACHE_LOCK:
+            if len(_CACHE) >= _CACHE_MAX:
+                _CACHE.clear()
+            _CACHE[cache_key] = (time.time() + ttl, payload)
+
+    return payload

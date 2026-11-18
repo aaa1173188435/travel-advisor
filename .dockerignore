@@ -1,0 +1,16 @@
+.git
+.gitignore
+.env
+.env.example
+.proxy
+.pytest_cache
+__pycache__
+*.pyc
+docs
+tests
+scripts
+README.md
+LICENSE
+Dockerfile
+.dockerignore
+render.yaml

@@ -58,3 +58,13 @@ def test_root_serves_page():
     response = client.get("/")
     assert response.status_code == 200
     assert "出行建议官" in response.text
+
+
+def test_rate_limit_blocks_excess_requests(monkeypatch):
+    monkeypatch.setenv("TRAVEL_ADVISOR_RATE_LIMIT", "2")
+    payload = {"city": "上海", "date": "2026-12-24", "mode": "commute", "use_llm": False}
+    assert client.post("/api/advice", json=payload).status_code == 200
+    assert client.post("/api/advice", json=payload).status_code == 200
+    blocked = client.post("/api/advice", json=payload)
+    assert blocked.status_code == 429
+    assert blocked.headers.get("Retry-After") == "60"

@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import os
+import threading
+import time
+from collections import deque
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +31,45 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 公网部署时保护后端额度：按 IP 限制生成请求频率（滑动窗口）
+_RATE_BUCKETS: dict[str, deque[float]] = {}
+_RATE_LOCK = threading.Lock()
+_RATE_WINDOW_SECONDS = 60
+
+
+def _rate_limit() -> int:
+    try:
+        return int(os.getenv("TRAVEL_ADVISOR_RATE_LIMIT", "30"))
+    except ValueError:
+        return 30
+
+
+def _client_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    limit = _rate_limit()
+    if request.method == "POST" and request.url.path == "/api/advice" and limit > 0:
+        ip = _client_ip(request)
+        now = time.time()
+        with _RATE_LOCK:
+            bucket = _RATE_BUCKETS.setdefault(ip, deque())
+            while bucket and bucket[0] <= now - _RATE_WINDOW_SECONDS:
+                bucket.popleft()
+            if len(bucket) >= limit:
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "请求过于频繁，请稍后再试"},
+                    headers={"Retry-After": str(_RATE_WINDOW_SECONDS)},
+                )
+            bucket.append(now)
+    return await call_next(request)
 
 
 @app.exception_handler(engine.UnknownModeError)

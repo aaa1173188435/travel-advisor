@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: travel-advisor
+    runtime: docker
+    plan: free
+    region: singapore
+    healthCheckPath: /api/health
+    dockerfilePath: ./Dockerfile
+    envVars:
+      # 在 Render 控制台里逐项填写，不要提交到仓库
+      - key: TRAVEL_ADVISOR_WEATHER_KEY
+        sync: false
+      - key: TRAVEL_ADVISOR_WEATHER_BASE_URL
+        sync: false
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      # 公网防刷：每个 IP 每分钟最多 30 次生成请求
+      - key: TRAVEL_ADVISOR_RATE_LIMIT
+        value: "30"
+      - key: TRAVEL_ADVISOR_CACHE_TTL
+        value: "300"

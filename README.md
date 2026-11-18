@@ -1,4 +1,4 @@
-# 出行建议官 · Travel Advisor
+﻿# 出行建议官 · Travel Advisor
 
 输入 **日期 + 城市 + 出行模式**，返回一份可解释、能直接照做的出行建议。
 规则引擎负责事实（气候、节假日、高峰、人流），大模型只负责把结论说得更自然——没配置 Key 也能完整使用。
@@ -134,8 +134,10 @@ travel-advisor/
 │     ├─ cities.json      # 30 个城市的气候与看点
 │     └─ holidays_cn.json # 2026 / 2027 官方放假安排
 ├─ web/                   # index.html / styles.css / app.js
-├─ tests/                 # 28 个用例
-└─ scripts/dev.ps1
+├─ tests/                 # 38 个用例
+├─ scripts/dev.ps1
+├─ Dockerfile             # 通用容器镜像
+└─ render.yaml            # Render 一键部署蓝图
 ```
 
 ## 规则引擎做了什么
@@ -310,11 +312,50 @@ $env:TRAVEL_ADVISOR_LLM_MODEL = "gpt-4o-mini"
 
 调用失败时 `polish.used=false`、`polish.error` 记录原因，其余结果照常返回；单次请求也可以用 `"use_llm": false` 跳过润色。
 
+## 部署（公网 / 手机访问）
+
+新闻简报那类项目可以放 GitHub Pages，因为它产出的是静态文件；**这个项目是 FastAPI 动态服务，Pages 跑不了 Python 后端**，需要一个能跑容器的托管平台。
+
+### 方式一：Render（免费，推荐）
+
+仓库里已经带了 `Dockerfile` 和 `render.yaml`，点几下就能上线：
+
+1. 用 GitHub 账号登录 [render.com](https://render.com)；
+2. **New → Blueprint**，选择 `travel-advisor` 仓库，Render 会自动读取 `render.yaml`；
+3. 在环境变量里填三个值（不会写进仓库）：
+   - `TRAVEL_ADVISOR_WEATHER_KEY`：和风 Key
+   - `TRAVEL_ADVISOR_WEATHER_BASE_URL`：和风 API Host
+   - `DEEPSEEK_API_KEY`：大模型 Key（可留空，留空就是纯规则）
+4. Apply，等构建完成，得到形如 `https://travel-advisor-xxxx.onrender.com` 的地址；
+5. 手机浏览器打开这个地址即可使用，也可以「添加到主屏幕」，图标和标题已经适配。
+
+注意：Render 免费实例 15 分钟无访问会休眠，再次访问约 30 秒冷启动；这是免费方案的正常现象。
+
+### 方式二：任意 Docker 主机 / VPS
+
+```bash
+docker build -t travel-advisor .
+docker run -d --name travel-advisor -p 8010:8010 --env-file .env travel-advisor
+```
+
+前面加一层 Nginx 或 Caddy 做 HTTPS 反代，手机就能通过域名访问。平台注入的 `PORT` 会被自动识别，无需改命令。
+
+### 公网成本保护
+
+服务一旦公开，别人点「生成建议」会消耗你的天气和大模型额度，所以默认加了两层保护：
+
+| 机制 | 默认值 | 调整方式 |
+| --- | --- | --- |
+| 按 IP 限流 | 30 次/分钟 | `TRAVEL_ADVISOR_RATE_LIMIT`，设 `0` 关闭 |
+| 相同输入缓存 | 300 秒 | `TRAVEL_ADVISOR_CACHE_TTL`，设 `0` 关闭 |
+
+超过限流返回 `429` 并带 `Retry-After: 60`。建议给线上单独申请一套 Key，并在各家控制台设置用量上限。
+
 ## 测试
 
 ```powershell
 python -m pytest
-# 36 passed
+# 38 passed
 ```
 
 覆盖节假日边界（春节第几天、调休上班、单日假期、估算年份）、模式注册、评分单调性、雨天提示、未知城市兜底、未知模式 422、天气接口解析与回退、接口与首页。
