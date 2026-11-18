@@ -1,9 +1,11 @@
-﻿# 出行建议官 · Travel Advisor
+# 出行建议官 · Travel Advisor
 
 输入 **日期 + 城市 + 出行模式**，返回一份可解释、能直接照做的出行建议。
 规则引擎负责事实（气候、节假日、高峰、人流），大模型只负责把结论说得更自然——没配置 Key 也能完整使用。
 
 ![首页](docs/screenshot-home.png)
+
+> 面试/讲解材料：[docs/interview-guide.md](docs/interview-guide.md)（架构图、设计取舍、演示脚本、常见追问）
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/aaa1173188435/travel-advisor)
 
