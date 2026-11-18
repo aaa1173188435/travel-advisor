@@ -72,9 +72,18 @@ def check_sdk(user: str, space: str) -> None:
 
 
 def prepare_clone(user: str, space: str, token: str) -> None:
-    if WORK.exists():
-        shutil.rmtree(WORK)
     url = f"https://www.modelscope.cn/studios/{user}/{space}.git"
+    if (WORK / ".git").exists():
+        print("复用已有克隆，先同步远端")
+        subprocess.run(["git", "-c", _auth_header(token), "fetch", "origin"], cwd=WORK, check=False)
+        subprocess.run(["git", "reset", "--hard", "origin/master"], cwd=WORK, check=False)
+        return
+
+    if WORK.exists():
+        subprocess.run(["cmd", "/c", "rmdir", "/s", "/q", str(WORK)], check=False)
+        if WORK.exists():
+            shutil.rmtree(WORK, ignore_errors=True)
+
     print(f"克隆创空间仓库：{user}/{space}")
     result = subprocess.run(
         ["git", "-c", _auth_header(token), "clone", url, str(WORK)],

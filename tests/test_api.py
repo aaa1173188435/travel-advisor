@@ -19,7 +19,7 @@ def test_health():
 def test_modes_endpoint():
     data = client.get("/api/modes").json()
     ids = [item["id"] for item in data["modes"]]
-    assert ids == ["commute", "travel"]
+    assert ids == ["commute", "fitness", "travel"]
     for item in data["modes"]:
         assert item["name"] and item["options"] is not None
 

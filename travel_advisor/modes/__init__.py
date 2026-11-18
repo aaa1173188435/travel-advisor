@@ -4,7 +4,7 @@
 前端会自动从 ``/api/modes`` 读到新条目并渲染它声明的附加选项。
 """
 
-from . import commute, travel  # noqa: F401
+from . import commute, fitness, travel  # noqa: F401
 from .base import Item, Mode, ModeResult, Section
 
-__all__ = ["Mode", "ModeResult", "Section", "Item", "commute", "travel"]
+__all__ = ["Mode", "ModeResult", "Section", "Item", "commute", "travel", "fitness"]

@@ -131,12 +131,13 @@ travel-advisor/
 │  ├─ modes/
 │  │  ├─ base.py          # Mode / Section / Item / 评分工具
 │  │  ├─ commute.py       # 通勤模式
+│  │  ├─ fitness.py       # 健身模式
 │  │  └─ travel.py        # 旅游模式
 │  └─ data/
 │     ├─ cities.json      # 31 个城市的气候与看点
 │     └─ holidays_cn.json # 2026 / 2027 官方放假安排
 ├─ web/                   # index.html / styles.css / app.js
-├─ tests/                 # 40 个用例
+├─ tests/                 # 44 个用例
 ├─ scripts/dev.ps1
 ├─ scripts/deploy_hf.py   # 一键发布到 Hugging Face Spaces
 ├─ scripts/deploy_modelscope.py  # 一键发布到魔搭 Docker 创空间
@@ -154,6 +155,8 @@ travel-advisor/
 **通勤模式**：早高峰 07:00—09:30、晚高峰 17:00—19:30；叠加降水、高温、严寒、限行、所选交通方式，给出时间缓冲、替代方案、随身清单，并计算 0—100 的出行指数。
 
 **旅游模式**：假期档期（首日出城 / 末日返程 / 中间景区人流）、目的地旺季、当季看点、按天数给行程密度、预约与预算提醒、装备清单。
+
+**健身模式**：按运动项目（跑步 / 骑行 / 户外训练 / 球类 / 健身房 / 游泳）、时长、强度、开始时间，区分室内外：户外看降水、高温、严寒与路面，室内看器械高峰；给出最佳时段、热身/主训练/放松拆分、装备与安全提醒。
 
 评分是规则加权的结果（雨雪、极端温度、高峰、假期人流扣分，错峰加分），因此同一份建议里的结论与分数始终一致。
 
@@ -415,7 +418,7 @@ docker run -d --name travel-advisor -p 8010:8010 --env-file .env travel-advisor
 
 ```powershell
 python -m pytest
-# 38 passed
+# 44 passed
 ```
 
 覆盖节假日边界（春节第几天、调休上班、单日假期、估算年份）、模式注册、评分单调性、雨天提示、未知城市兜底、未知模式 422、天气接口解析与回退、接口与首页。

@@ -76,6 +76,34 @@ def test_new_city_baishan_is_available():
     assert payload["result"]["sections"]
 
 
+def test_fitness_mode_registered():
+    ids = {item["id"] for item in engine.modes_info()}
+    assert "fitness" in ids
+
+
+def test_fitness_indoor_beats_outdoor_in_cold():
+    day = date(2027, 1, 10)
+    outdoor = engine.advise(city="白山", day=day, mode_id="fitness", options={"activity": "run"}, use_llm=False)
+    indoor = engine.advise(city="白山", day=day, mode_id="fitness", options={"activity": "gym"}, use_llm=False)
+    assert outdoor["result"]["score"] < indoor["result"]["score"]
+    assert "寒冷" in outdoor["result"]["tags"] or "严寒" in outdoor["result"]["tags"]
+    assert "室内" not in outdoor["result"]["tags"]
+    assert "室内" in indoor["result"]["tags"]
+
+
+def test_fitness_duration_and_intensity_applied():
+    payload = engine.advise(
+        city="上海",
+        day=date(2026, 11, 21),
+        mode_id="fitness",
+        options={"activity": "gym", "duration": 90, "intensity": "hard"},
+        use_llm=False,
+    )
+    texts = " ".join(item["text"] for section in payload["result"]["sections"] for item in section["items"])
+    assert "90 分钟" in texts
+    assert "高强度" in texts
+
+
 def test_scores_are_bounded():
     for city in ("哈尔滨", "三亚", "拉萨"):
         for mode_id in ("commute", "travel"):
